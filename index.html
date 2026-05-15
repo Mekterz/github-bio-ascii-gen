@@ -29,7 +29,7 @@
                         <input type="range" id="widthScale" min="5" max="35" value="25">
                     </div>
                     <div class="control-group">
-                        <label>THRESHOLD (Seuil de découpe)</label>
+                        <label>THRESHOLD (Détourage)</label>
                         <input type="range" id="threshold" min="0" max="255" value="128">
                     </div>
                 </div>
@@ -49,13 +49,11 @@
                     <label class="toggle-item">
                         <input type="checkbox" id="invert"> INVERT_COLORS
                     </label>
-                    <label class="toggle-item">
-                        <input type="checkbox" id="dithering"> ENABLE_DITHERING (Noise)
-                    </label>
                     <div class="control-group" style="flex: 1; text-align: right;">
                         <select id="charStyle" style="background: #000; color: #fff; border: 1px solid #333; padding: 5px; font-family: inherit; font-size: 0.7rem;">
+                            <option value="classic">STYLE: CLASSIC BLOCKS (█)</option>
+                            <option value="quadrants">STYLE: QUADRANTS (▖▗▘▙)</option>
                             <option value="braille">STYLE: BRAILLE (Dots)</option>
-                            <option value="blocks">STYLE: BLOCKS (Solid)</option>
                         </select>
                     </div>
                 </div>
