@@ -5,6 +5,7 @@ const contrastInput = document.getElementById('contrast');
 const brightnessInput = document.getElementById('brightness');
 const ditheringInput = document.getElementById('dithering');
 const invertInput = document.getElementById('invert');
+const charStyle = document.getElementById('charStyle');
 const output = document.getElementById('output');
 const charCount = document.getElementById('charCount');
 const copyBtn = document.getElementById('copyBtn');
@@ -23,7 +24,7 @@ imageInput.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
 });
 
-[widthScale, contrastInput, brightnessInput, ditheringInput, invertInput].forEach(el => {
+[widthScale, contrastInput, brightnessInput, ditheringInput, invertInput, charStyle].forEach(el => {
     el.addEventListener('input', () => {
         widthValue.textContent = widthScale.value;
         render();
@@ -40,11 +41,17 @@ copyBtn.addEventListener('click', () => {
 function render() {
     if (!currentImage) return;
 
+    const style = charStyle.value;
     const charWidth = parseInt(widthScale.value);
-    const pixelWidth = charWidth * 2;
+    
+    // Braille is 2x4, Blocks is 2x2
+    const subWidth = 2;
+    const subHeight = (style === 'braille') ? 4 : 2;
+
+    const pixelWidth = charWidth * subWidth;
     const scale = pixelWidth / currentImage.width;
     const pixelHeight = Math.round(currentImage.height * scale);
-    const charHeight = Math.ceil(pixelHeight / 4);
+    const charHeight = Math.ceil(pixelHeight / subHeight);
 
     const canvas = document.createElement('canvas');
     canvas.width = pixelWidth;
@@ -62,12 +69,19 @@ function render() {
     let pixels = new Float32Array(pixelWidth * pixelHeight);
     for (let i = 0; i < data.length; i += 4) {
         let avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        let alpha = data[i + 3];
         
         // Apply brightness and contrast
         avg = (avg - 128) * contrast + 128 + brightness;
         avg = Math.max(0, Math.min(255, avg));
         
-        pixels[i / 4] = isInverted ? 255 - avg : avg;
+        // Handle transparency: if pixel is transparent, force it to "white" (which becomes empty)
+        // Unless inverted, then it becomes black.
+        if (alpha < 128) {
+            pixels[i / 4] = 255; 
+        } else {
+            pixels[i / 4] = isInverted ? 255 - avg : avg;
+        }
     }
 
     if (ditheringInput.checked) {
@@ -88,23 +102,44 @@ function render() {
     }
 
     let result = '';
-    const dots = [[0,0,1], [0,1,2], [0,2,4], [1,0,8], [1,1,16], [1,2,32], [0,3,64], [1,3,128]];
-
-    for (let y = 0; y < charHeight; y++) {
-        for (let x = 0; x < charWidth; x++) {
-            let code = 0;
-            dots.forEach(([dx, dy, val]) => {
-                const px = x * 2 + dx;
-                const py = y * 4 + dy;
-                if (px < pixelWidth && py < pixelHeight) {
-                    if (pixels[py * pixelWidth + px] < 128) code += val;
-                }
-            });
-            result += String.fromCharCode(0x2800 + code);
+    if (style === 'braille') {
+        const dots = [[0,0,1], [0,1,2], [0,2,4], [1,0,8], [1,1,16], [1,2,32], [0,3,64], [1,3,128]];
+        for (let y = 0; y < charHeight; y++) {
+            for (let x = 0; x < charWidth; x++) {
+                let code = 0;
+                dots.forEach(([dx, dy, val]) => {
+                    const px = x * 2 + dx;
+                    const py = y * 4 + dy;
+                    if (px < pixelWidth && py < pixelHeight && pixels[py * pixelWidth + px] < 128) code += val;
+                });
+                result += String.fromCharCode(0x2800 + code);
+            }
+            result += '\n';
         }
-        result += '\n';
+    } else {
+        // Quadrant Blocks (2x2)
+        const quadrants = [
+            ' ', '▗', '▖', '▄', '▝', '▐', '▞', '▟',
+            '▘', '▚', '▌', '▙', '▀', '▜', '▛', '█'
+        ];
+        for (let y = 0; y < charHeight; y++) {
+            for (let x = 0; x < charWidth; x++) {
+                let code = 0;
+                if (getPix(x*2, y*2, pixelWidth, pixelHeight, pixels)) code += 8;
+                if (getPix(x*2+1, y*2, pixelWidth, pixelHeight, pixels)) code += 4;
+                if (getPix(x*2, y*2+1, pixelWidth, pixelHeight, pixels)) code += 2;
+                if (getPix(x*2+1, y*2+1, pixelWidth, pixelHeight, pixels)) code += 1;
+                result += quadrants[code];
+            }
+            result += '\n';
+        }
     }
 
     output.textContent = result.trim();
     charCount.textContent = output.textContent.length;
+}
+
+function getPix(x, y, w, h, pixels) {
+    if (x >= w || y >= h) return false;
+    return pixels[y * w + x] < 128;
 }
