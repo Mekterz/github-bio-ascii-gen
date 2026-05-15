@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioGen - GitHub ASCII Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Bio<span>Gen</span></h1>
+            <p>Générateur de Bio GitHub haute fidélité (Braille Art)</p>
+        </header>
+
+        <main>
+            <div class="upload-section">
+                <label for="imageInput" class="custom-file-upload">
+                    Choisir une image
+                </label>
+                <input type="file" id="imageInput" accept="image/*">
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label>Largeur (en caractères)</label>
+                    <input type="range" id="widthScale" min="5" max="30" value="15">
+                    <span id="widthValue">15</span>
+                </div>
+                <div class="control-group">
+                    <label>Seuil de contraste</label>
+                    <input type="range" id="threshold" min="0" max="255" value="128">
+                </div>
+            </div>
+
+            <div class="output-container">
+                <div class="output-header">
+                    <span>Résultat (<span id="charCount">0</span>/160 caractères)</span>
+                    <button id="copyBtn">Copier</button>
+                </div>
+                <pre id="output"></pre>
+            </div>
+        </main>
+
+        <footer>
+            <p>Optimisé pour les bios GitHub (Limite 160 caractères)</p>
+        </footer>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+:root {
+    --bg: #0d1117;
+    --card-bg: #161b22;
+    --primary: #58a6ff;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --border: #30363d;
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+h1 {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: -1px;
+}
+
+h1 span {
+    color: var(--primary);
+}
+
+header p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.upload-section {
+    margin: 2rem 0;
+    text-align: center;
+}
+
+.custom-file-upload {
+    background: var(--primary);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s;
+}
+
+#imageInput {
+    display: none;
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.control-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+input[type="range"] {
+    flex-grow: 1;
+    margin: 0 15px;
+}
+
+.output-container {
+    background: #010409;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+}
+
+.output-header {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+#copyBtn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#copyBtn:hover {
+    background: var(--border);
+}
+
+#output {
+    margin: 0;
+    padding: 15px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.2rem;
+    line-height: 1;
+    white-space: pre;
+    overflow-x: auto;
+    min-height: 100px;
+}
+
+footer {
+    margin-top: 2rem;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+}
