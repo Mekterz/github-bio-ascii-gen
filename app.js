@@ -111,7 +111,7 @@ function render() {
 
     let lines = [];
     const BLANK_BRAILLE = '\u2800';
-    const ANCHOR = '.'; 
+    const ANCHOR = ''; 
 
     for (let y = 0; y < charHeight; y++) {
         let line = ANCHOR;
