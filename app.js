@@ -97,6 +97,8 @@ function render() {
     }
 
     let lines = [];
+    const BLANK = '\u2800'; // Caractère invisible (Braille vide)
+
     if (style === 'braille') {
         const dots = [[0,0,1], [0,1,2], [0,2,4], [1,0,8], [1,1,16], [1,2,32], [0,3,64], [1,3,128]];
         for (let y = 0; y < charHeight; y++) {
@@ -108,12 +110,12 @@ function render() {
                     const py = y * 4 + dy;
                     if (px < pixelWidth && py < pixelHeight && pixels[py * pixelWidth + px] < 128) code += val;
                 });
-                line += code === 0 ? '\u2800' : String.fromCharCode(0x2800 + code);
+                line += code === 0 ? BLANK : String.fromCharCode(0x2800 + code);
             }
             lines.push(line);
         }
     } else {
-        const quadrants = [' ', '▗', '▖', '▄', '▝', '▐', '▞', '▟', '▘', '▚', '▌', '▙', '▀', '▜', '▛', '█'];
+        const quadrants = [BLANK, '▗', '▖', '▄', '▝', '▐', '▞', '▟', '▘', '▚', '▌', '▙', '▀', '▜', '▛', '█'];
         for (let y = 0; y < charHeight; y++) {
             let line = '';
             for (let x = 0; x < charWidth; x++) {
@@ -122,14 +124,19 @@ function render() {
                 if (getPix(x*2+1, y*2, pixelWidth, pixelHeight, pixels)) code += 4;
                 if (getPix(x*2, y*2+1, pixelWidth, pixelHeight, pixels)) code += 2;
                 if (getPix(x*2+1, y*2+1, pixelWidth, pixelHeight, pixels)) code += 1;
-                line += code === 0 ? '\u2800' : quadrants[code];
+                line += quadrants[code];
             }
-            // Pad with spaces for block mode too if needed
             lines.push(line);
         }
     }
 
-    let finalResult = lines.join('\n');
+    // Force la limite de 160 caractères
+    let finalResult = '';
+    for (let line of lines) {
+        if ((finalResult + line).length > 160) break;
+        finalResult += (finalResult ? '\n' : '') + line;
+    }
+
     output.textContent = finalResult;
     charCount.textContent = finalResult.length;
 }
