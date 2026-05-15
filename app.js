@@ -12,7 +12,7 @@ const copyBtn = document.getElementById('copyBtn');
 
 let currentImage = null;
 
-// --- Background Animation ---
+// --- Background Animation (Chic & Minimal) ---
 const canvas_bg = document.getElementById('bg-canvas');
 const ctx_bg = canvas_bg.getContext('2d');
 let dots_bg = [];
@@ -21,21 +21,21 @@ function initBg() {
     canvas_bg.width = window.innerWidth;
     canvas_bg.height = window.innerHeight;
     dots_bg = [];
-    for(let i=0; i<50; i++) {
+    for(let i=0; i<30; i++) {
         dots_bg.push({
             x: Math.random() * canvas_bg.width,
             y: Math.random() * canvas_bg.height,
-            char: String.fromCharCode(0x2800 + Math.floor(Math.random() * 255)),
+            char: Math.random() > 0.5 ? '⠿' : '⠶',
             opacity: Math.random(),
-            speed: 0.005 + Math.random() * 0.01
+            speed: 0.002 + Math.random() * 0.005
         });
     }
 }
 
 function animateBg() {
     ctx_bg.clearRect(0, 0, canvas_bg.width, canvas_bg.height);
-    ctx_bg.font = '14px JetBrains Mono';
-    ctx_bg.fillStyle = 'rgba(0, 255, 65, 0.5)';
+    ctx_bg.font = '12px monospace';
+    ctx_bg.fillStyle = '#222';
     
     dots_bg.forEach(dot => {
         dot.opacity -= dot.speed;
@@ -43,7 +43,6 @@ function animateBg() {
             dot.x = Math.random() * canvas_bg.width;
             dot.y = Math.random() * canvas_bg.height;
             dot.opacity = 1;
-            dot.char = String.fromCharCode(0x2800 + Math.floor(Math.random() * 255));
         }
         ctx_bg.globalAlpha = dot.opacity;
         ctx_bg.fillText(dot.char, dot.x, dot.y);
@@ -76,9 +75,10 @@ imageInput.addEventListener('change', (e) => {
 });
 
 copyBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(output.textContent);
+    const text = output.textContent;
+    navigator.clipboard.writeText(text);
     const original = copyBtn.textContent;
-    copyBtn.textContent = 'DONE';
+    copyBtn.textContent = 'COPIED_TO_CLIPBOARD';
     setTimeout(() => copyBtn.textContent = original, 2000);
 });
 
@@ -87,6 +87,7 @@ function render() {
 
     const style = charStyle.value;
     const charWidth = parseInt(widthScale.value);
+    
     const subWidth = 2;
     const subHeight = (style === 'braille') ? 4 : 2;
 
@@ -110,13 +111,15 @@ function render() {
 
     let pixels = new Float32Array(pixelWidth * pixelHeight);
     for (let i = 0; i < data.length; i += 4) {
-        let avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-        let alpha = data[i + 3];
+        let r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+        let avg = (r + g + b) / 3;
+        
         avg = (avg - 128) * contrast + 128 + brightness;
         avg = Math.max(0, Math.min(255, avg));
         
-        if (alpha < 128) {
-            pixels[i / 4] = 255; 
+        // Transparency handling: if alpha is low, treat as "background"
+        if (a < 50) {
+            pixels[i / 4] = 255; // White (empty)
         } else {
             pixels[i / 4] = isInverted ? 255 - avg : avg;
         }
@@ -141,11 +144,12 @@ function render() {
 
     let lines = [];
     const BLANK = '\u2800'; 
+    const ANCHOR = '.'; // Invisible anchor could be used, but '.' is safer as requested
 
     if (style === 'braille') {
         const dots = [[0,0,1], [0,1,2], [0,2,4], [1,0,8], [1,1,16], [1,2,32], [0,3,64], [1,3,128]];
         for (let y = 0; y < charHeight; y++) {
-            let line = '';
+            let line = ANCHOR; // Start with anchor to prevent trimming
             for (let x = 0; x < charWidth; x++) {
                 let code = 0;
                 dots.forEach(([dx, dy, val]) => {
@@ -160,7 +164,7 @@ function render() {
     } else {
         const quadrants = [BLANK, '▗', '▖', '▄', '▝', '▐', '▞', '▟', '▘', '▚', '▌', '▙', '▀', '▜', '▛', '█'];
         for (let y = 0; y < charHeight; y++) {
-            let line = '';
+            let line = ANCHOR;
             for (let x = 0; x < charWidth; x++) {
                 let code = 0;
                 if (getPix(x*2, y*2, pixelWidth, pixelHeight, pixels)) code += 8;
@@ -173,10 +177,12 @@ function render() {
         }
     }
 
+    // Smart truncation to 160 chars
     let finalResult = '';
-    for (let line of lines) {
-        if ((finalResult + line).length > 160) break;
-        finalResult += (finalResult ? '\n' : '') + line;
+    for (let i = 0; i < lines.length; i++) {
+        const potential = finalResult + (finalResult ? '\n' : '') + lines[i];
+        if (potential.length > 160) break;
+        finalResult = potential;
     }
 
     output.textContent = finalResult;
