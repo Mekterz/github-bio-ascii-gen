@@ -122,7 +122,7 @@ function render() {
                 if (getPix(x*2+1, y*2, pixelWidth, pixelHeight, pixels)) code += 4;
                 if (getPix(x*2, y*2+1, pixelWidth, pixelHeight, pixels)) code += 2;
                 if (getPix(x*2+1, y*2+1, pixelWidth, pixelHeight, pixels)) code += 1;
-                line += code === 0 ? ' ' : quadrants[code];
+                line += code === 0 ? '\u2800' : quadrants[code];
             }
             // Pad with spaces for block mode too if needed
             lines.push(line);
