@@ -12,6 +12,50 @@ const copyBtn = document.getElementById('copyBtn');
 
 let currentImage = null;
 
+// --- Background Animation ---
+const canvas_bg = document.getElementById('bg-canvas');
+const ctx_bg = canvas_bg.getContext('2d');
+let dots_bg = [];
+
+function initBg() {
+    canvas_bg.width = window.innerWidth;
+    canvas_bg.height = window.innerHeight;
+    dots_bg = [];
+    for(let i=0; i<50; i++) {
+        dots_bg.push({
+            x: Math.random() * canvas_bg.width,
+            y: Math.random() * canvas_bg.height,
+            char: String.fromCharCode(0x2800 + Math.floor(Math.random() * 255)),
+            opacity: Math.random(),
+            speed: 0.005 + Math.random() * 0.01
+        });
+    }
+}
+
+function animateBg() {
+    ctx_bg.clearRect(0, 0, canvas_bg.width, canvas_bg.height);
+    ctx_bg.font = '14px JetBrains Mono';
+    ctx_bg.fillStyle = 'rgba(0, 255, 65, 0.5)';
+    
+    dots_bg.forEach(dot => {
+        dot.opacity -= dot.speed;
+        if(dot.opacity <= 0) {
+            dot.x = Math.random() * canvas_bg.width;
+            dot.y = Math.random() * canvas_bg.height;
+            dot.opacity = 1;
+            dot.char = String.fromCharCode(0x2800 + Math.floor(Math.random() * 255));
+        }
+        ctx_bg.globalAlpha = dot.opacity;
+        ctx_bg.fillText(dot.char, dot.x, dot.y);
+    });
+    requestAnimationFrame(animateBg);
+}
+
+window.addEventListener('resize', initBg);
+initBg();
+animateBg();
+
+// --- Core Logic ---
 imageInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -34,7 +78,7 @@ imageInput.addEventListener('change', (e) => {
 copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(output.textContent);
     const original = copyBtn.textContent;
-    copyBtn.textContent = 'Copié !';
+    copyBtn.textContent = 'DONE';
     setTimeout(() => copyBtn.textContent = original, 2000);
 });
 
@@ -43,7 +87,6 @@ function render() {
 
     const style = charStyle.value;
     const charWidth = parseInt(widthScale.value);
-    
     const subWidth = 2;
     const subHeight = (style === 'braille') ? 4 : 2;
 
@@ -97,7 +140,7 @@ function render() {
     }
 
     let lines = [];
-    const BLANK = '\u2800'; // Caractère invisible (Braille vide)
+    const BLANK = '\u2800'; 
 
     if (style === 'braille') {
         const dots = [[0,0,1], [0,1,2], [0,2,4], [1,0,8], [1,1,16], [1,2,32], [0,3,64], [1,3,128]];
@@ -130,7 +173,6 @@ function render() {
         }
     }
 
-    // Force la limite de 160 caractères
     let finalResult = '';
     for (let line of lines) {
         if ((finalResult + line).length > 160) break;
