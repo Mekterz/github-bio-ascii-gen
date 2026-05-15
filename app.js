@@ -1,8 +1,8 @@
 const imageInput = document.getElementById('imageInput');
 const widthScale = document.getElementById('widthScale');
-const widthValue = document.getElementById('widthValue');
 const contrastInput = document.getElementById('contrast');
 const brightnessInput = document.getElementById('brightness');
+const thresholdInput = document.getElementById('threshold');
 const ditheringInput = document.getElementById('dithering');
 const invertInput = document.getElementById('invert');
 const charStyle = document.getElementById('charStyle');
@@ -12,7 +12,7 @@ const copyBtn = document.getElementById('copyBtn');
 
 let currentImage = null;
 
-// --- Background Animation (Chic & Minimal) ---
+// --- Background Animation ---
 const canvas_bg = document.getElementById('bg-canvas');
 const ctx_bg = canvas_bg.getContext('2d');
 let dots_bg = [];
@@ -21,21 +21,21 @@ function initBg() {
     canvas_bg.width = window.innerWidth;
     canvas_bg.height = window.innerHeight;
     dots_bg = [];
-    for(let i=0; i<30; i++) {
+    for(let i=0; i<40; i++) {
         dots_bg.push({
             x: Math.random() * canvas_bg.width,
             y: Math.random() * canvas_bg.height,
-            char: Math.random() > 0.5 ? '⠿' : '⠶',
+            char: String.fromCharCode(0x2800 + Math.floor(Math.random() * 255)),
             opacity: Math.random(),
-            speed: 0.002 + Math.random() * 0.005
+            speed: 0.003 + Math.random() * 0.007
         });
     }
 }
 
 function animateBg() {
     ctx_bg.clearRect(0, 0, canvas_bg.width, canvas_bg.height);
-    ctx_bg.font = '12px monospace';
-    ctx_bg.fillStyle = '#222';
+    ctx_bg.font = '12px "JetBrains Mono"';
+    ctx_bg.fillStyle = '#1a1a1a';
     
     dots_bg.forEach(dot => {
         dot.opacity -= dot.speed;
@@ -67,18 +67,14 @@ imageInput.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
 });
 
-[widthScale, contrastInput, brightnessInput, ditheringInput, invertInput, charStyle].forEach(el => {
-    el.addEventListener('input', () => {
-        widthValue.textContent = widthScale.value;
-        render();
-    });
+[widthScale, contrastInput, brightnessInput, thresholdInput, ditheringInput, invertInput, charStyle].forEach(el => {
+    el.addEventListener('input', () => render());
 });
 
 copyBtn.addEventListener('click', () => {
-    const text = output.textContent;
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(output.textContent);
     const original = copyBtn.textContent;
-    copyBtn.textContent = 'COPIED_TO_CLIPBOARD';
+    copyBtn.textContent = 'DONE';
     setTimeout(() => copyBtn.textContent = original, 2000);
 });
 
@@ -87,7 +83,6 @@ function render() {
 
     const style = charStyle.value;
     const charWidth = parseInt(widthScale.value);
-    
     const subWidth = 2;
     const subHeight = (style === 'braille') ? 4 : 2;
 
@@ -107,6 +102,7 @@ function render() {
     
     const contrast = (parseInt(contrastInput.value) + 100) / 100;
     const brightness = parseInt(brightnessInput.value);
+    const threshold = parseInt(thresholdInput.value);
     const isInverted = invertInput.checked;
 
     let pixels = new Float32Array(pixelWidth * pixelHeight);
@@ -117,9 +113,9 @@ function render() {
         avg = (avg - 128) * contrast + 128 + brightness;
         avg = Math.max(0, Math.min(255, avg));
         
-        // Transparency handling: if alpha is low, treat as "background"
+        // Transparency handling
         if (a < 50) {
-            pixels[i / 4] = 255; // White (empty)
+            pixels[i / 4] = 255; 
         } else {
             pixels[i / 4] = isInverted ? 255 - avg : avg;
         }
@@ -129,7 +125,7 @@ function render() {
         for (let y = 0; y < pixelHeight; y++) {
             for (let x = 0; x < pixelWidth; x++) {
                 let oldP = pixels[y * pixelWidth + x];
-                let newP = oldP < 128 ? 0 : 255;
+                let newP = oldP < threshold ? 0 : 255;
                 pixels[y * pixelWidth + x] = newP;
                 let err = oldP - newP;
                 if (x + 1 < pixelWidth) pixels[y * pixelWidth + x + 1] += err * 7/16;
@@ -144,18 +140,21 @@ function render() {
 
     let lines = [];
     const BLANK = '\u2800'; 
-    const ANCHOR = '.'; // Invisible anchor could be used, but '.' is safer as requested
+    const ANCHOR = '.'; 
 
     if (style === 'braille') {
         const dots = [[0,0,1], [0,1,2], [0,2,4], [1,0,8], [1,1,16], [1,2,32], [0,3,64], [1,3,128]];
         for (let y = 0; y < charHeight; y++) {
-            let line = ANCHOR; // Start with anchor to prevent trimming
+            let line = ANCHOR;
             for (let x = 0; x < charWidth; x++) {
                 let code = 0;
                 dots.forEach(([dx, dy, val]) => {
                     const px = x * 2 + dx;
                     const py = y * 4 + dy;
-                    if (px < pixelWidth && py < pixelHeight && pixels[py * pixelWidth + px] < 128) code += val;
+                    if (px < pixelWidth && py < pixelHeight) {
+                        const val_pix = ditheringInput.checked ? pixels[py * pixelWidth + px] : (pixels[py * pixelWidth + px] < threshold ? 0 : 255);
+                        if (val_pix < 128) code += val;
+                    }
                 });
                 line += code === 0 ? BLANK : String.fromCharCode(0x2800 + code);
             }
@@ -167,17 +166,16 @@ function render() {
             let line = ANCHOR;
             for (let x = 0; x < charWidth; x++) {
                 let code = 0;
-                if (getPix(x*2, y*2, pixelWidth, pixelHeight, pixels)) code += 8;
-                if (getPix(x*2+1, y*2, pixelWidth, pixelHeight, pixels)) code += 4;
-                if (getPix(x*2, y*2+1, pixelWidth, pixelHeight, pixels)) code += 2;
-                if (getPix(x*2+1, y*2+1, pixelWidth, pixelHeight, pixels)) code += 1;
+                if (getPix(x*2, y*2, pixelWidth, pixelHeight, pixels, threshold)) code += 8;
+                if (getPix(x*2+1, y*2, pixelWidth, pixelHeight, pixels, threshold)) code += 4;
+                if (getPix(x*2, y*2+1, pixelWidth, pixelHeight, pixels, threshold)) code += 2;
+                if (getPix(x*2+1, y*2+1, pixelWidth, pixelHeight, pixels, threshold)) code += 1;
                 line += quadrants[code];
             }
             lines.push(line);
         }
     }
 
-    // Smart truncation to 160 chars
     let finalResult = '';
     for (let i = 0; i < lines.length; i++) {
         const potential = finalResult + (finalResult ? '\n' : '') + lines[i];
@@ -189,7 +187,8 @@ function render() {
     charCount.textContent = finalResult.length;
 }
 
-function getPix(x, y, w, h, pixels) {
+function getPix(x, y, w, h, pixels, threshold) {
     if (x >= w || y >= h) return false;
-    return pixels[y * w + x] < 128;
+    const val = ditheringInput.checked ? pixels[y * w + x] : (pixels[y * w + x] < threshold ? 0 : 255);
+    return val < 128;
 }
