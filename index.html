@@ -13,7 +13,7 @@
     <div class="container">
         <header>
             <h1>Bio<span>Gen</span>.exe</h1>
-            <p>ADVANCED_ASCII_PROCESSOR</p>
+            <p>ADVANCED_ASCII_PROCESSOR // FIXED_WIDTH: 31px</p>
         </header>
 
         <main>
@@ -25,12 +25,15 @@
             <div class="controls">
                 <div class="control-row">
                     <div class="control-group">
-                        <label>RESOLUTION_WIDTH (max 35)</label>
-                        <input type="range" id="widthScale" min="5" max="35" value="25">
-                    </div>
-                    <div class="control-group">
                         <label>THRESHOLD (Détourage)</label>
                         <input type="range" id="threshold" min="0" max="255" value="128">
+                    </div>
+                    <div class="control-group">
+                        <select id="charStyle" style="background: #000; color: #fff; border: 1px solid #333; padding: 10px; font-family: inherit; font-size: 0.75rem; width: 100%; margin-top: 20px;">
+                            <option value="classic">STYLE: CLASSIC BLOCKS (█)</option>
+                            <option value="quadrants">STYLE: QUADRANTS (▖▗▘▙)</option>
+                            <option value="braille">STYLE: BRAILLE (Dots)</option>
+                        </select>
                     </div>
                 </div>
 
@@ -49,19 +52,12 @@
                     <label class="toggle-item">
                         <input type="checkbox" id="invert"> INVERT_COLORS
                     </label>
-                    <div class="control-group" style="flex: 1; text-align: right;">
-                        <select id="charStyle" style="background: #000; color: #fff; border: 1px solid #333; padding: 5px; font-family: inherit; font-size: 0.7rem;">
-                            <option value="classic">STYLE: CLASSIC BLOCKS (█)</option>
-                            <option value="quadrants">STYLE: QUADRANTS (▖▗▘▙)</option>
-                            <option value="braille">STYLE: BRAILLE (Dots)</option>
-                        </select>
-                    </div>
                 </div>
             </div>
 
             <div class="output-container">
                 <div class="output-header">
-                    <span>BUFFER_OUTPUT [SIZE: <span id="charCount">0</span>/160]</span>
+                    <span>BUFFER_OUTPUT [WIDTH: 31 | SIZE: <span id="charCount">0</span>/160]</span>
                     <button id="copyBtn">COPY_TO_BIO</button>
                 </div>
                 <pre id="output"></pre>

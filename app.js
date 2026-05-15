@@ -1,5 +1,4 @@
 const imageInput = document.getElementById('imageInput');
-const widthScale = document.getElementById('widthScale');
 const contrastInput = document.getElementById('contrast');
 const brightnessInput = document.getElementById('brightness');
 const thresholdInput = document.getElementById('threshold');
@@ -10,6 +9,7 @@ const charCount = document.getElementById('charCount');
 const copyBtn = document.getElementById('copyBtn');
 
 let currentImage = null;
+const FIXED_WIDTH = 31; // Largeur forcée demandée par l'utilisateur
 
 // --- Background Animation ---
 const canvas_bg = document.getElementById('bg-canvas');
@@ -58,7 +58,7 @@ imageInput.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
 });
 
-[widthScale, contrastInput, brightnessInput, thresholdInput, invertInput, charStyle].forEach(el => {
+[contrastInput, brightnessInput, thresholdInput, invertInput, charStyle].forEach(el => {
     el.addEventListener('input', () => render());
 });
 
@@ -72,9 +72,8 @@ function render() {
     if (!currentImage) return;
 
     const style = charStyle.value;
-    const charWidth = parseInt(widthScale.value);
+    const charWidth = FIXED_WIDTH;
     
-    // Scale handling
     const subWidth = (style === 'braille' || style === 'quadrants') ? 2 : 1;
     const subHeight = (style === 'braille') ? 4 : (style === 'quadrants' ? 2 : 1);
 
@@ -99,18 +98,14 @@ function render() {
     for (let i = 0; i < data.length; i += 4) {
         let r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
         let avg = (r + g + b) / 3;
-        
-        // Even if transparent, we treat it as black (or background)
         avg = (avg - 128) * contrast + 128 + brightness;
         avg = Math.max(0, Math.min(255, avg));
-        
-        // No more alpha skipping, we want a character everywhere
         pixels[i / 4] = isInverted ? 255 - avg : avg;
     }
 
     let lines = [];
-    const BG_CHAR = '░'; // Visible background character
-    const FG_CHAR = '█'; // Solid foreground character
+    const BG_CHAR = '░'; 
+    const FG_CHAR = '█'; 
     const BLANK_BRAILLE = '\u2800'; 
 
     for (let y = 0; y < charHeight; y++) {
@@ -138,15 +133,18 @@ function render() {
                 const px = x, py = y;
                 if (px < pixelWidth && py < pixelHeight) {
                     line += pixels[py * pixelWidth + px] < threshold ? FG_CHAR : BG_CHAR;
+                } else {
+                    line += BG_CHAR;
                 }
             }
         }
         lines.push(line);
     }
 
+    // Force exact character limit (160)
     let finalResult = '';
     for (let l of lines) {
-        if ((finalResult + l).length > 160) break;
+        if ((finalResult + (finalResult ? '\n' : '') + l).length > 160) break;
         finalResult += (finalResult ? '\n' : '') + l;
     }
 
