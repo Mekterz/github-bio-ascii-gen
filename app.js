@@ -44,7 +44,6 @@ function render() {
     const style = charStyle.value;
     const charWidth = parseInt(widthScale.value);
     
-    // Braille is 2x4, Blocks is 2x2
     const subWidth = 2;
     const subHeight = (style === 'braille') ? 4 : 2;
 
@@ -70,13 +69,9 @@ function render() {
     for (let i = 0; i < data.length; i += 4) {
         let avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
         let alpha = data[i + 3];
-        
-        // Apply brightness and contrast
         avg = (avg - 128) * contrast + 128 + brightness;
         avg = Math.max(0, Math.min(255, avg));
         
-        // Handle transparency: if pixel is transparent, force it to "white" (which becomes empty)
-        // Unless inverted, then it becomes black.
         if (alpha < 128) {
             pixels[i / 4] = 255; 
         } else {
@@ -101,10 +96,11 @@ function render() {
         }
     }
 
-    let result = '';
+    let lines = [];
     if (style === 'braille') {
         const dots = [[0,0,1], [0,1,2], [0,2,4], [1,0,8], [1,1,16], [1,2,32], [0,3,64], [1,3,128]];
         for (let y = 0; y < charHeight; y++) {
+            let line = '';
             for (let x = 0; x < charWidth; x++) {
                 let code = 0;
                 dots.forEach(([dx, dy, val]) => {
@@ -112,31 +108,30 @@ function render() {
                     const py = y * 4 + dy;
                     if (px < pixelWidth && py < pixelHeight && pixels[py * pixelWidth + px] < 128) code += val;
                 });
-                result += String.fromCharCode(0x2800 + code);
+                line += code === 0 ? '\u2800' : String.fromCharCode(0x2800 + code);
             }
-            result += '\n';
+            lines.push(line);
         }
     } else {
-        // Quadrant Blocks (2x2)
-        const quadrants = [
-            ' ', '▗', '▖', '▄', '▝', '▐', '▞', '▟',
-            '▘', '▚', '▌', '▙', '▀', '▜', '▛', '█'
-        ];
+        const quadrants = [' ', '▗', '▖', '▄', '▝', '▐', '▞', '▟', '▘', '▚', '▌', '▙', '▀', '▜', '▛', '█'];
         for (let y = 0; y < charHeight; y++) {
+            let line = '';
             for (let x = 0; x < charWidth; x++) {
                 let code = 0;
                 if (getPix(x*2, y*2, pixelWidth, pixelHeight, pixels)) code += 8;
                 if (getPix(x*2+1, y*2, pixelWidth, pixelHeight, pixels)) code += 4;
                 if (getPix(x*2, y*2+1, pixelWidth, pixelHeight, pixels)) code += 2;
                 if (getPix(x*2+1, y*2+1, pixelWidth, pixelHeight, pixels)) code += 1;
-                result += quadrants[code];
+                line += code === 0 ? ' ' : quadrants[code];
             }
-            result += '\n';
+            // Pad with spaces for block mode too if needed
+            lines.push(line);
         }
     }
 
-    output.textContent = result.trim();
-    charCount.textContent = output.textContent.length;
+    let finalResult = lines.join('\n');
+    output.textContent = finalResult;
+    charCount.textContent = finalResult.length;
 }
 
 function getPix(x, y, w, h, pixels) {
