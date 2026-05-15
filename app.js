@@ -64,7 +64,7 @@ imageInput.addEventListener('change', (e) => {
 
 copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(output.textContent);
-    copyBtn.textContent = 'COPIED';
+    copyBtn.textContent = 'DONE';
     setTimeout(() => copyBtn.textContent = 'COPY_TO_BIO', 2000);
 });
 
@@ -74,7 +74,7 @@ function render() {
     const style = charStyle.value;
     const charWidth = parseInt(widthScale.value);
     
-    // Braille uses 2x4 pixels per char, Blocks uses 1x1 or 2x2
+    // Scale handling
     const subWidth = (style === 'braille' || style === 'quadrants') ? 2 : 1;
     const subHeight = (style === 'braille') ? 4 : (style === 'quadrants' ? 2 : 1);
 
@@ -97,24 +97,24 @@ function render() {
 
     let pixels = new Float32Array(pixelWidth * pixelHeight);
     for (let i = 0; i < data.length; i += 4) {
-        let avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-        let alpha = data[i + 3];
+        let r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+        let avg = (r + g + b) / 3;
+        
+        // Even if transparent, we treat it as black (or background)
         avg = (avg - 128) * contrast + 128 + brightness;
         avg = Math.max(0, Math.min(255, avg));
         
-        if (alpha < 50) {
-            pixels[i / 4] = 255; 
-        } else {
-            pixels[i / 4] = isInverted ? 255 - avg : avg;
-        }
+        // No more alpha skipping, we want a character everywhere
+        pixels[i / 4] = isInverted ? 255 - avg : avg;
     }
 
     let lines = [];
-    const BLANK_BRAILLE = '\u2800';
-    const ANCHOR = ''; 
+    const BG_CHAR = '░'; // Visible background character
+    const FG_CHAR = '█'; // Solid foreground character
+    const BLANK_BRAILLE = '\u2800'; 
 
     for (let y = 0; y < charHeight; y++) {
-        let line = ANCHOR;
+        let line = '';
         for (let x = 0; x < charWidth; x++) {
             if (style === 'braille') {
                 let code = 0;
@@ -126,7 +126,7 @@ function render() {
                 line += code === 0 ? BLANK_BRAILLE : String.fromCharCode(0x2800 + code);
             } 
             else if (style === 'quadrants') {
-                const q = [BLANK_BRAILLE, '▗', '▖', '▄', '▝', '▐', '▞', '▟', '▘', '▚', '▌', '▙', '▀', '▜', '▛', '█'];
+                const q = [' ', '▗', '▖', '▄', '▝', '▐', '▞', '▟', '▘', '▚', '▌', '▙', '▀', '▜', '▛', '█'];
                 let code = 0;
                 if (getPix(x*2, y*2, pixelWidth, pixelHeight, pixels, threshold)) code += 8;
                 if (getPix(x*2+1, y*2, pixelWidth, pixelHeight, pixels, threshold)) code += 4;
@@ -137,7 +137,7 @@ function render() {
             else { // Classic Blocks 1x1
                 const px = x, py = y;
                 if (px < pixelWidth && py < pixelHeight) {
-                    line += pixels[py * pixelWidth + px] < threshold ? '█' : BLANK_BRAILLE;
+                    line += pixels[py * pixelWidth + px] < threshold ? FG_CHAR : BG_CHAR;
                 }
             }
         }
@@ -146,7 +146,7 @@ function render() {
 
     let finalResult = '';
     for (let l of lines) {
-        if ((finalResult + l).length > 158) break; // 158 to be safe with newlines
+        if ((finalResult + l).length > 160) break;
         finalResult += (finalResult ? '\n' : '') + l;
     }
 
