@@ -1,8 +1,10 @@
 const imageInput = document.getElementById('imageInput');
 const widthScale = document.getElementById('widthScale');
 const widthValue = document.getElementById('widthValue');
-const thresholdInput = document.getElementById('threshold');
+const contrastInput = document.getElementById('contrast');
+const brightnessInput = document.getElementById('brightness');
 const ditheringInput = document.getElementById('dithering');
+const invertInput = document.getElementById('invert');
 const output = document.getElementById('output');
 const charCount = document.getElementById('charCount');
 const copyBtn = document.getElementById('copyBtn');
@@ -13,18 +15,15 @@ imageInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = (ev) => {
         const img = new Image();
-        img.onload = () => {
-            currentImage = img;
-            render();
-        };
-        img.src = event.target.result;
+        img.onload = () => { currentImage = img; render(); };
+        img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
 });
 
-[widthScale, thresholdInput, ditheringInput].forEach(el => {
+[widthScale, contrastInput, brightnessInput, ditheringInput, invertInput].forEach(el => {
     el.addEventListener('input', () => {
         widthValue.textContent = widthScale.value;
         render();
@@ -33,9 +32,9 @@ imageInput.addEventListener('change', (e) => {
 
 copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(output.textContent);
-    const originalText = copyBtn.textContent;
+    const original = copyBtn.textContent;
     copyBtn.textContent = 'Copié !';
-    setTimeout(() => copyBtn.textContent = originalText, 2000);
+    setTimeout(() => copyBtn.textContent = original, 2000);
 });
 
 function render() {
@@ -55,34 +54,36 @@ function render() {
 
     const imageData = ctx.getImageData(0, 0, pixelWidth, pixelHeight);
     const data = imageData.data;
-    const threshold = parseInt(thresholdInput.value);
     
-    // Grayscale conversion
+    const contrast = (parseInt(contrastInput.value) + 100) / 100;
+    const brightness = parseInt(brightnessInput.value);
+    const isInverted = invertInput.checked;
+
     let pixels = new Float32Array(pixelWidth * pixelHeight);
     for (let i = 0; i < data.length; i += 4) {
-        pixels[i / 4] = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        let avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        
+        // Apply brightness and contrast
+        avg = (avg - 128) * contrast + 128 + brightness;
+        avg = Math.max(0, Math.min(255, avg));
+        
+        pixels[i / 4] = isInverted ? 255 - avg : avg;
     }
 
-    // Apply Floyd-Steinberg Dithering if enabled
     if (ditheringInput.checked) {
         for (let y = 0; y < pixelHeight; y++) {
             for (let x = 0; x < pixelWidth; x++) {
-                let oldPixel = pixels[y * pixelWidth + x];
-                let newPixel = oldPixel < threshold ? 0 : 255;
-                pixels[y * pixelWidth + x] = newPixel;
-                let error = oldPixel - newPixel;
-
-                if (x + 1 < pixelWidth) pixels[y * pixelWidth + (x + 1)] += error * 7 / 16;
+                let oldP = pixels[y * pixelWidth + x];
+                let newP = oldP < 128 ? 0 : 255;
+                pixels[y * pixelWidth + x] = newP;
+                let err = oldP - newP;
+                if (x + 1 < pixelWidth) pixels[y * pixelWidth + x + 1] += err * 7/16;
                 if (y + 1 < pixelHeight) {
-                    if (x - 1 >= 0) pixels[(y + 1) * pixelWidth + (x - 1)] += error * 3 / 16;
-                    pixels[(y + 1) * pixelWidth + x] += error * 5 / 16;
-                    if (x + 1 < pixelWidth) pixels[(y + 1) * pixelWidth + (x + 1)] += error * 1 / 16;
+                    if (x > 0) pixels[(y+1) * pixelWidth + x - 1] += err * 3/16;
+                    pixels[(y+1) * pixelWidth + x] += err * 5/16;
+                    if (x + 1 < pixelWidth) pixels[(y+1) * pixelWidth + x + 1] += err * 1/16;
                 }
             }
-        }
-    } else {
-        for (let i = 0; i < pixels.length; i++) {
-            pixels[i] = pixels[i] < threshold ? 0 : 255;
         }
     }
 
